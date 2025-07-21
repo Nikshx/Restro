@@ -1,6 +1,7 @@
 from django.urls import include, path
 from .views import MenuItemList, OrderListCreateView, OrderDetailView, get_notes
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from . import views
 
 urlpatterns = [
     path("menu-item/", MenuItemList.as_view(), name='menu-item-list'),
