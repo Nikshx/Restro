@@ -25,6 +25,7 @@ urlpatterns = [
     # Your app's API endpoints
     path('base/', include('base.urls')),
 
-   
+    path('accounts/', include('django.contrib.auth.urls')),
+    path("accounts/", include("orders.urls")),
 
 ]
