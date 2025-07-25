@@ -1,0 +1,123 @@
+.cart {
+  width: 100%;
+  max-width: 600px;
+  background-color: #0C0C0C;
+  padding: 20px;
+  border-radius: 8px;
+  color: var(--color-golden);
+  box-shadow: 0 0 20px rgba(220, 202, 135, 0.5);
+  font-family: var(--font-alt);
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #333;
+  padding: 12px 0;
+}
+
+.cart-item-info {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.quantity-controls {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-btn {
+  background-color: transparent;
+  border: 1.5px solid var(--color-golden);
+  color: var(--color-golden);
+  padding: 4px 10px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.quantity-btn:hover {
+  background-color: var(--color-golden);
+  color: var(--color-black);
+}
+
+.remove-btn {
+  flex: 0.8;
+  background: none;
+  border: none;
+  color: #e74c3c;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.remove-btn:hover {
+  color: #c0392b;
+}
+
+.custom__button {
+  background-color: var(--color-golden);
+  color: var(--color-black);
+  border: none;
+  padding: 12px 24px;
+  font-family: var(--font-base);
+  font-weight: 700;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+  width: 100%;
+}
+
+.custom__button:hover {
+  background-color: #bfa65d;
+}
+.cart__container {
+  background-color: var(--color-crimson);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 500px;
+  color: var(--color-black);
+}
+
+.cart__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cart__item-info {
+  flex-grow: 1;
+}
+
+.cart__item-actions button {
+  background: var(--color-golden);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  margin: 0 0.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cart__total {
+  margin-top: 1.5rem;
+  text-align: right;
+}
+
+.checkout__button {
+  background-color: var(--color-black);
+  color: var(--color-white);
+  padding: 0.8rem 1.5rem;
+  margin-top: 1rem;
+  border: none;
+  cursor: pointer;
+}

@@ -16,14 +16,24 @@ Including another URLconf
 """
 
 from django.contrib import admin
-
+from django.shortcuts import render
 from django.urls import path, include
+
+
+
+def index_view(request, *args, **kwargs):
+    return render(request, 'index.html')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Your app's API endpoints
     path('base/', include('base.urls')),
+    path('api/', include('base.urls')), 
+    path('', index_view, name='index'),
+    
+    
 
    
 

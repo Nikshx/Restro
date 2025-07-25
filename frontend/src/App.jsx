@@ -1,5 +1,5 @@
 import { useState } from 'react'
-
+import Register  from './register/Register';
 import { CanteenHeader, CanteenMenu } from './container';
 import { Navbar } from './components';
 import './App.css'
@@ -12,6 +12,7 @@ function App() {
     <Navbar/>
     <CanteenHeader/>
     <CanteenMenu/>
+    <Register/>
     </>
   ) 
 }

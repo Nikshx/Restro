@@ -1,11 +1,19 @@
 from rest_framework import serializers
-from .models import  MenuItem, Order, Note
+
+from .unsplash_utils import fetch_unsplash_image
+from .models import *
 from django.contrib.auth.models import User
 
 class MenuItemSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price']
+        fields = ['id', 'name', 'price', 'description', 'category', 'image_url']
+
+    def get_image_url(self, obj):
+        image_url = fetch_unsplash_image(obj.name)
+        return image_url or ""
 
 class OrderSerializer(serializers.ModelSerializer):
     items = MenuItemSerializer(many=True, read_only=True)  
@@ -20,4 +28,4 @@ class OrderSerializer(serializers.ModelSerializer):
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
-        field=['id','description']
+        fields = ['id', 'description']
