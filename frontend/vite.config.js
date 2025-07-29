@@ -1,16 +1,20 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+// frontend/vite.config.js
 
-// https://vite.dev/config/
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/static/',
-
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
+      // This tells Vite to forward any request starting with /api
+      // to your Django backend server.
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
-
-  
-})
+});

@@ -1,7 +1,7 @@
 import React from 'react';
 import './Cart.css';
 
-const Cart = ({ items, onRemove, onAdd, onRemoveCompletely }) => {
+const Cart = ({ items, onRemove, onAdd, onRemoveCompletely, onCheckout}) => {
   const totalCost = items.reduce(
     (total, item) => total + item.price * item.quantity,
     0
@@ -46,7 +46,7 @@ const Cart = ({ items, onRemove, onAdd, onRemoveCompletely }) => {
           <h3 className="headtext__cormorant" style={{ color: '#DCCA87', marginTop: 20 }}>
             Total: Rs. {totalCost}
           </h3>
-          <button className="custom__button" style={{ marginTop: 15 }}>
+          <button className="custom__button" style={{ marginTop: 15 }} onClick={onCheckout}>
             Checkout
           </button>
         </>

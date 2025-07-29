@@ -1,0 +1,121 @@
+
+.app__book-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--color-black);
+    padding: 4rem 6rem;
+}
+
+.app__book-table_tables-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    width: 100%;
+    margin-top: 3rem;
+}
+
+.app__book-table_table-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    border: 1px solid var(--color-golden);
+    background-color: var(--color-black);
+    transition: 0.3s ease-in-out;
+    min-height: 250px;
+}
+
+.app__book-table_table-card:hover {
+    box-shadow: 0 0 20px rgba(220, 202, 135, 0.2);
+}
+
+.app__book-table_table-card h2 {
+    font-family: var(--font-base);
+    color: var(--color-golden);
+    font-size: 28px;
+    margin-bottom: 1rem;
+}
+
+.app__book-table_table-card p {
+    font-family: var(--font-alt);
+    color: var(--color-white);
+    font-size: 16px;
+    margin-bottom: 1rem; /* Adjusted margin */
+}
+.book-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-white);
+}
+
+.seats-input {
+    width: 60px;
+    padding: 0.5rem;
+    font-family: var(--font-alt);
+    font-size: 16px;
+    font-weight: bold;
+    background: var(--color-crimson);
+    border: 1px solid var(--color-golden);
+    color: var(--color-black);
+    text-align: center;
+    border-radius: 5px;
+}
+
+/* Button styling - reusing your app's custom button style if available */
+.app__book-table_table-card .custom__button {
+    background: var(--color-golden);
+    color: var(--color-black);
+    font-family: var(--font-base);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 28px;
+    font-size: 16px;
+    padding: 0.5rem 1.5rem;
+    border-radius: 1px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.app__book-table_table-card .custom__button:hover {
+    background: var(--color-white);
+}
+
+/* Add a class for booked tables to change their appearance */
+.app__book-table_table-card--booked {
+    background-color: var(--color-gray);
+    border-color: var(--color-grey);
+    cursor: not-allowed;
+}
+
+.app__book-table_table-card--booked h2 {
+    color: var(--color-grey);
+}
+
+.app__book-table_table-card--booked p {
+    color: var(--color-crimson);
+}
+
+/* Disable the button for booked tables */
+.app__book-table_table-card--booked .custom__button {
+    background-color: var(--color-grey);
+    color: var(--color-black);
+    cursor: not-allowed;
+}
+
+/* Media queries for responsiveness */
+@media screen and (max-width: 650px) {
+    .app__book-table {
+        padding: 4rem 2rem; /* Less padding on smaller screens */
+    }
+
+    .app__book-table_tables-container {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+}

@@ -1,145 +1,141 @@
+# In your_app/views.py
+
 from rest_framework.response import Response
-
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import authenticate, login, logout
-from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_POST
-from django.middleware.csrf import get_token
+from django.contrib.auth.models import User
+from django.db import models, transaction
+from rest_framework import generics, status, permissions, serializers
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from django.views.decorators.csrf import csrf_protect
-import json,requests
-from .utils.gemini import enrich_menu_item
-from .models import MenuItem, Order
-from .serializers import MenuItemSerializer, OrderSerializer
-from rest_framework_simplejwt.authentication import JWTAuthentication
+import requests
+from django.db.models import Sum
+from rest_framework.views import APIView
 
-UNSPLASH_ACCESS_KEY = 'bRSY6Ar9PUb1986rvzrDGYSX2ZUpbq7JF1x_mapdeTk'
 
-def fetch_unsplash_image(query):
-    url = "https://api.unsplash.com/search/photos"
-    headers = {"Accept-Version": "v1"}
-    params = {
-        "query": query,
-        "client_id": UNSPLASH_ACCESS_KEY,
-        "per_page": 1,
-    }
-    response = requests.get(url, headers=headers, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        if data["results"]:
-            return data["results"][0]["urls"]["small"]
-    return None
+from .models import MenuItem, Order, OrderItem, Table, Booking
+from .serializers import (
+    UserSerializer, MyTokenObtainPairSerializer, MenuItemSerializer, 
+    OrderSerializer, TableSerializer, BookingSerializer
+)
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-class MenuItemList(generics.ListCreateAPIView):
-    serializer_class = MenuItemSerializer
-    authentication_classes = [JWTAuthentication]
+
+class CreateOrderView(generics.CreateAPIView):
+    """
+    Handles the creation of a new order from the user's cart.
+    This is the main endpoint for the checkout process.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer # Uses OrderSerializer for response format
+
+    @transaction.atomic # Ensures all database operations are a single, safe transaction
+    def create(self, request, *args, **kwargs):
+        # 1. Get the cart data sent from the frontend
+        cart_items = request.data.get('cart', [])
+        if not cart_items:
+            return Response({'error': 'Cart cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Create the main Order object, linked to the current user
+        order = Order.objects.create(user=request.user, total_price=0)
+        total_order_price = 0
+
+        # 3. Loop through each item in the cart
+        for item_data in cart_items:
+            try:
+                menu_item = MenuItem.objects.get(id=item_data['id'])
+                quantity = int(item_data['quantity'])
+                price_at_purchase = menu_item.price # Get price from the definitive source
+                
+                # Create the "line item" for the receipt
+                OrderItem.objects.create(
+                    order=order,
+                    menu_item=menu_item,
+                    quantity=quantity,
+                    price_at_purchase=price_at_purchase
+                )
+                # Add this item's subtotal to the grand total
+                total_order_price += (price_at_purchase * quantity)
+            except MenuItem.DoesNotExist:
+                # If any item is invalid, the whole transaction is rolled back
+                return Response(
+                    {'error': f"Menu item with id {item_data['id']} not found."}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid quantity provided for an item.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # 4. Update the order's final total price and save
+        order.total_price = total_order_price
+        order.save()
+
+        # 5. Serialize the complete order and return it as a success response
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class OrderRetrieveView(generics.RetrieveAPIView):
+    """
+    Fetches a single, specific order by its ID.
+    Used for the order confirmation/receipt page.
+    """
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return MenuItem.objects.filter(is_available=True)
+        # Ensure users can only retrieve their own orders
+        return Order.objects.filter(user=self.request.user)
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
+# --- End of New/Corrected Order Views ---
 
-        # Attach image_url from Unsplash for each item
-        for item in data:
-            image_url = fetch_unsplash_image(item['name'])
-            item['image_url'] = image_url or ''
 
-        return Response(data)
-
-class OrderListCreateView(generics.ListCreateAPIView):
-    queryset = Order.objects.all()
+# --- ALL YOUR OTHER VIEWS ARE CORRECT AND REMAIN BELOW ---
+class OrderListView(generics.ListAPIView):
+    """
+    Provides a list of all past orders for the currently authenticated user.
+    """
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
-class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    
-def get_csrf(request):
-    response = JsonResponse({'detail': 'CSRF cookie set'})
-    response['X-CSRFToken'] = get_token(request)
-    return response
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-@ensure_csrf_cookie
-def session_view(request):
-    return JsonResponse({
-        "isAuthenticated": request.user.is_authenticated
-    })
+    def get_queryset(self):
+        """
+        This method is overridden to ensure that users can only see their own orders.
+        It filters the Order objects based on the user making the request.
+        """
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])  # <-- add this!
-@csrf_protect
-def login_view(request):
-    data = request.data
-    username = data.get('username')
-    password = data.get('password')
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
 
-    if not username or not password:
-        return JsonResponse({'detail': 'Missing credentials'}, status=400)
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
-    user = authenticate(request, username=username, password=password)
-    if user is None:
-        return JsonResponse({'detail': 'Invalid credentials'}, status=401)
+class MenuItemList(generics.ListAPIView): # Changed to ListAPIView as create is handled elsewhere
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny] # Allow guests to see the menu
+    queryset = MenuItem.objects.filter(is_available=True)
 
-    login(request, user)
-    return JsonResponse({'detail': 'Successfully logged in'})
+class TableList(generics.ListAPIView):
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+class CreateBooking(generics.CreateAPIView):
+    queryset = Booking.objects.all()
+    serializer_class = BookingSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-@api_view(["POST"])
-def logout_view(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'detail': "You're not logged in."}, status=400)
+    def perform_create(self, serializer):
+        table = serializer.validated_data['table']
+        people_to_book = serializer.validated_data['number_of_people']
+        seats_taken_agg = Booking.objects.filter(table=table).aggregate(total=Sum('number_of_people'))
+        seats_taken = seats_taken_agg['total'] or 0
+        seats_remaining = table.capacity - seats_taken
+        if people_to_book > seats_remaining:
+            raise serializers.ValidationError(f"Cannot book {people_to_book} seats. Only {seats_remaining} available.")
+        serializer.save()
 
-    logout(request)
-    return JsonResponse({'detail': 'Successfully logged out'})
-
-
-@api_view(["GET"])
-def whoami_view(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'isAuthenticated': False})
-
-    return JsonResponse({'username': request.user.username})
-
-
-
-
-
-
-BASE_MENU = {
-    "foods": [
-        {"title": "Veg Burger", "price": "$5", "tags": "Spicy, Grilled"},
-        {"title": "Paneer Wrap", "price": "$6", "tags": "Indian, Grilled"},
-    ],
-    "drinks": [
-        {"title": "Lemonade", "price": "$2", "tags": "Cold, Fresh"},
-        {"title": "Iced Tea", "price": "$2.5", "tags": "Chilled, Caffeinated"},
-    ]
-}
-
-def get_enriched_menu(request):
-    enriched_menu = {"foods": [], "drinks": []}
-
-    for item in BASE_MENU["foods"]:
-        gemini_data = enrich_menu_item(item["title"])
-        enriched_menu["foods"].append({**item, **gemini_data})
-
-    for item in BASE_MENU["drinks"]:
-        gemini_data = enrich_menu_item(item["title"])
-        enriched_menu["drinks"].append({**item, **gemini_data})
-
-    return JsonResponse(enriched_menu)
-
-def test_gemini(request):
-    result = enrich_menu_item("Cheese Sandwich")
-    return JsonResponse(result)

@@ -1,0 +1,114 @@
+
+.auth__page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 100px); 
+    padding: 4rem 2rem;
+    background: var(--color-black);
+    background: url('../../assets/bg.png'); 
+    background-position: center;
+    background-size: cover;
+    background-repeat: repeat;
+}
+
+.auth__container {
+    width: 100%;
+    max-width: 480px;
+    padding: 3rem;
+    background: var(--color-black);
+    border: 1px solid rgba(220, 202, 135, 0.4); 
+    z-index: 1; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+.auth__container h2 {
+    font-family: var(--font-base);
+    color: var(--color-golden);
+    font-size: 32px;
+    line-height: 42px;
+    letter-spacing: 0.04em;
+    text-transform: capitalize;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth__container form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.auth__container input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-alt);
+    color: var(--color-white);
+    background-color: transparent;
+    border: 1px solid var(--color-golden);
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: all 0.3s ease-in-out;
+}
+
+.auth__container input::placeholder {
+    color: var(--color-grey);
+}
+
+.auth__container input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(220, 202, 135, 0.5);
+}
+
+
+
+.custom__button {
+    background-color: var(--color-golden);
+    color: var(--color-black);
+    font-family: var(--font-base);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 28px;
+    font-size: 16px;
+    padding: 0.5rem 1.5rem;
+    border-radius: 5px;
+    border: 1px solid var(--color-golden);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom__button:hover {
+    background-color: var(--color-crimson);
+    color: var(--color-black);
+}
+
+.auth__toggle-btn {
+    font-family: var(--font-alt);
+    color: var(--color-grey);
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    text-align: center;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
+
+.auth__toggle-btn:hover {
+    color: var(--color-golden);
+}
+
+
+
+.auth__error {
+    color: #f75c5c; /* A soft red that fits the theme */
+    font-family: var(--font-alt);
+    text-align: center;
+    margin-top: -1rem; /* Pull it closer to the input above */
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}

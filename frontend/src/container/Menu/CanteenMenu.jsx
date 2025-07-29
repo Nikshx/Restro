@@ -1,43 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SubHeading, MenuItem } from '../../components';
 import './CanteenMenu.css';
 import images from '../../constants/images'; 
 import Cart from '../Cart/Cart';
+import { AuthContext } from '../../context/AuthContext';
 
 const CanteenMenu = () => {
   const [foods, setFoods] = useState([]);
   const [drinks, setDrinks] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [isCartVisible, setIsCartVisible] = useState(false);
+  const { authTokens } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-
-useEffect(() => {
-  const token = localStorage.getItem("token");
-
-  fetch("http://localhost:8000/api/menu-item/", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    }
-  })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      const foodItems = data.filter(item => item.category === "food");
-      const drinkItems = data.filter(item => item.category === "drink");
-      setFoods(foodItems);
-      setDrinks(drinkItems);
-    })
-    .catch((err) => console.error("Fetch menu error:", err));
-}, []);
-
-
-  // Add item to cart or increase quantity if already in cart
+  
   const addToCart = (item) => {
     setCartItems(prevItems => {
       const exist = prevItems.find(cartItem => cartItem.id === item.id);
@@ -52,20 +29,79 @@ useEffect(() => {
     });
   };
 
-  const removeFromCart = (item) => {
-  setCartItems((prevItems) => {
-    const existingItem = prevItems.find((i) => i.id === item.id);
-    if (!existingItem) return prevItems;
-
-    if (existingItem.quantity === 1) {
-      return prevItems.filter((i) => i.id !== item.id);
-    } else {
+  const removeFromCart = (itemId) => {
+    setCartItems((prevItems) => {
+      const existingItem = prevItems.find((i) => i.id === itemId);
+      if (existingItem?.quantity === 1) {
+        return prevItems.filter((i) => i.id !== itemId);
+      } 
       return prevItems.map((i) =>
-        i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+        i.id === itemId ? { ...i, quantity: i.quantity - 1 } : i
       );
+    });
+  };
+
+  const removeCompletelyFromCart = (itemId) => {
+    setCartItems((prevItems) => prevItems.filter((i) => i.id !== itemId));
+  };
+
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      alert("Your cart is empty and cannot be checked out.");
+      return;
     }
-  });
-};
+    if (!authTokens) {
+      alert("Please log in to place an order.");
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/orders/create/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authTokens.access}`,
+        },
+        body: JSON.stringify({ cart: cartItems }),
+      });
+
+      const newOrder = await response.json();
+
+      if (!response.ok) {
+        throw new Error(newOrder.error || "An unknown error occurred during checkout.");
+      }
+
+      alert("Order placed successfully!");
+      setCartItems([]);
+      setIsCartVisible(false);
+      navigate(`/order/${newOrder.id}`);
+
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert(`Checkout Failed: ${err.message}`);
+    }
+  };
+  
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      const headers = { "Content-Type": "application/json" };
+      if (authTokens) {
+        headers["Authorization"] = `Bearer ${authTokens.access}`;
+      }
+      try {
+        const response = await fetch("/api/menu-items/", { headers });
+        const data = await response.json();
+        if (!response.ok) throw new Error("Failed to fetch menu items");
+        setFoods(data.filter(item => item.category === "food"));
+        setDrinks(data.filter(item => item.category === "drink"));
+      } catch (err) {
+        console.error("Fetch menu error:", err);
+      }
+    };
+    fetchMenuItems();
+  }, [authTokens]);
+
 
 
   return (
@@ -79,13 +115,15 @@ useEffect(() => {
         <div className="app__specialMenu-menu_wine flex__center">
           <p className="app__specialMenu-menu_heading">Foods</p>
           <div className="app__specialMenu_menu_items">
-            {foods.map((item, index) => (
+            {foods.map((item) => (
+              // --- THIS IS THE FIX ---
+              // We explicitly map the prop name here.
               <MenuItem
-                key={item.name + index}
+                key={item.id}
                 title={item.name}
                 price={`Rs. ${item.price}`}
                 tags={item.description || "No description"}
-                imageUrl={item.image_url}
+                imageUrl={item.image_url} // <-- Map snake_case to camelCase
                 onAddToCart={() => addToCart(item)}
               />
             ))}
@@ -99,13 +137,14 @@ useEffect(() => {
         <div className="app__specialMenu-menu_cocktails flex__center">
           <p className="app__specialMenu-menu_heading">Drinks</p>
           <div className="app__specialMenu_menu_items">
-            {drinks.map((item, index) => (
+            {drinks.map((item) => (
+              // --- APPLY THE SAME FIX HERE ---
               <MenuItem
-                key={item.name + index}
+                key={item.id}
                 title={item.name}
                 price={`Rs. ${item.price}`}
                 tags={item.description || "No description"}
-                imageUrl={item.image_url}
+                imageUrl={item.image_url} // <-- Map snake_case to camelCase
                 onAddToCart={() => addToCart(item)}
               />
             ))}
@@ -113,15 +152,21 @@ useEffect(() => {
         </div>
       </div>
 
-<div style={{ marginTop: 15 }}>
-  <button onClick={() => setIsCartVisible(!isCartVisible)} className="custom__button">
-    {isCartVisible ? 'Hide Cart' : 'View Cart'}
-  </button>
+      <div style={{ marginTop: 15 }}>
+        <button onClick={() => setIsCartVisible(!isCartVisible)} className="custom__button">
+          {isCartVisible ? 'Hide Cart' : 'View Cart'}
+        </button>
 
-  {isCartVisible && (
-    <Cart items={cartItems} onRemove={removeFromCart} onAdd={addToCart} />
-  )}
-</div>
+        {isCartVisible && (
+          <Cart 
+            items={cartItems} 
+            onRemove={removeFromCart}
+            onAdd={addToCart}
+            onRemoveCompletely={removeCompletelyFromCart}
+            onCheckout={handleCheckout}
+          />
+        )}
+      </div>
     </div>
   );
 };
